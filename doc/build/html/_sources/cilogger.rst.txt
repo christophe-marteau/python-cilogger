@@ -1,0 +1,13 @@
+cilogger package
+================
+
+Submodules
+----------
+
+cilogger.cilogger module
+------------------------
+
+.. automodule:: cilogger.cilogger
+   :members:
+   :undoc-members:
+   :show-inheritance:
