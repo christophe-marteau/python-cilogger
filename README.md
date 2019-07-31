@@ -7,6 +7,17 @@ type "TRACE". It also contains two decorators:
 * A function decorator "@ftrace" that allows you to draw function calls with its arguments
 * A class decorator "@ctrace" that lets you plot method and property calls
 
+Install :
+---------
+
+```
+pip install git+https://github.com/christophe-marteau/python-cilogger#egg=cilogger
+```
+
+
+Use :
+-----
+
 ```python
 # coding: utf-8
 
