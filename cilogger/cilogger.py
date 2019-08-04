@@ -49,20 +49,25 @@ def finspect(f, fargs) -> dict:
     :return: A dict with module name and function name. Default to {'module': f.__module__, 'name': f.__name__}
     """
     fname = f.__name__
+    ftype = None
+
     if hasattr(f, '__self__'):
         a = getattr(f, '__self__')
         if f.__name__ == '__get__' and hasattr(a, 'fget'):
             # Found a getter property
             p = getattr(a, 'fget')
             fname = getattr(p, '__name__')
+            ftype = 'getter'
         if f.__name__ == '__set__' and hasattr(a, 'fset'):
             # Found a getter propertylocals().keys()
             p = getattr(a, 'fset')
             fname = getattr(p, '__name__')
+            ftype = 'setter'
         if f.__name__ == '__delattr__' and hasattr(a, 'fdel'):
             # Found a getter property
             p = getattr(a, 'fdel')
             fname = getattr(p, '__name__')
+            ftype = 'deleter'
 
     if len(fargs) > 0:
         instance = fargs[0]
@@ -73,7 +78,7 @@ def finspect(f, fargs) -> dict:
     else:
         fmodule = f.__module__
 
-    return {'module': fmodule, 'name': fname}
+    return {'module': fmodule, 'name': fname, 'type': ftype}
 
 
 def ftrace(fct: typing.Callable) -> typing.Callable:
@@ -94,11 +99,25 @@ def ftrace(fct: typing.Callable) -> typing.Callable:
         dargs = [v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty]
         fi = finspect(fct, args)
         locallogger = ccilogger(fi['module'])
-        locallogger.indent('TRACE', '( *{}, **{} )'.format(cargs + dargs, kwargs),
-                           extra={'realFunctionName': fi['name'], 'prefix': ''})
+        if fi['type'] == 'setter':
+            aargs = cargs + dargs
+            locallogger.log(locallogger.TRACE, '( {} ) => set( {} )'.format(aargs[0], aargs[1]),
+                            extra={'realFunctionName': fi['name'], 'prefix': '',
+                                   'padding_default_char': ' ',
+                                   'padding_default_enclosure_char': '@'})
+        elif fi['type'] is None:
+            locallogger.indent('TRACE', '( *{}, **{} )'.format(cargs + dargs, kwargs),
+                               extra={'realFunctionName': fi['name'], 'prefix': ''})
         x = fct(*args, **kwargs)
-        locallogger.unindent('TRACE', '( *{}, **{} ) = {}'.format(cargs + dargs, kwargs, x),
-                             extra={'realFunctionName': fi['name'], 'prefix': ''})
+        if fi['type'] == 'getter':
+            aargs = cargs + dargs
+            locallogger.log(locallogger.TRACE, '( {} ) <= get( {} )'.format(aargs[0], x),
+                            extra={'realFunctionName': fi['name'], 'prefix': '',
+                                   'padding_default_char': ' ',
+                                   'padding_default_enclosure_char': '#'})
+        elif fi['type'] is None:
+            locallogger.unindent('TRACE', '( *{}, **{} ) = {}'.format(cargs + dargs, kwargs, x),
+                                 extra={'realFunctionName': fi['name'], 'prefix': ''})
         return x
     return ftraced
 
@@ -325,13 +344,17 @@ class CiLogger(log.getLoggerClass()):
 
         if not hasattr(record, 'indent'):
             record.indent = 'default'
+        if not hasattr(record, 'padding_default_char'):
+            record.padding_default_char = self.padding_default_char
+        if not hasattr(record, 'padding_default_enclosure_char'):
+            record.padding_default_enclosure_char = self.padding_default_enclosure_char
         if not hasattr(record, 'prefix'):
             record.prefix = self.message_default_prefix
         if not hasattr(record, 'realFunctionName'):
             record.realFunctionName = record.funcName
 
-        record.padding = '{:{}>{}}'.format(self.padding_default_enclosure_char,
-                                           self.padding_default_char, self.indent_count)
+        record.padding = '{:{}>{}}'.format(record.padding_default_enclosure_char,
+                                           record.padding_default_char, self.indent_count)
 
         if record.indent == 'start':
             record.padding = '{:{}>{}}'.format(self.padding_start_enclosure_char,
