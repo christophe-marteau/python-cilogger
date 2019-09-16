@@ -378,7 +378,7 @@ def _rcilogger():
     handler = log.StreamHandler()
     ciformatter = CiFormatter('<color fg=cyan>{asctime:12s}</> '
                               '<level>{levelname: >8s}</> '
-                              '<color fg=green>{name: >30s}:</> '
+                              '<color fg=green>{name: >35s}:</> '
                               '<color fg=grey bg=#414141>{padding}</>'
                               '<color fg=magenta>{realFunctionName}</>'
                               '{prefix}<level>{message}</>',
