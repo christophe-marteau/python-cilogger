@@ -185,7 +185,7 @@ class CiFormatter(log.Formatter):
         :param object record: A record object containing level's colors
         :return: A colorized string
         """
-        sregex = re.compile(r'<(color|level)\s*([^>]*)>(.+?)</>')
+        sregex = re.compile(r'<(color|level)\s*([^>]*)>(.*?)</>')
         m = sregex.search(s)
         if m:
             tag = m.group(1)
