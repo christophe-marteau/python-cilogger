@@ -6,6 +6,7 @@ type "TRACE". It also contains two decorators:
 
 * A function decorator "@ftrace" that allows you to log function calls with its arguments
 * A class decorator "@ctrace" that lets you log class method and property calls
+
   * @ is used to show that it's a setter property call
   * # is used to show that it's a getter property call
 

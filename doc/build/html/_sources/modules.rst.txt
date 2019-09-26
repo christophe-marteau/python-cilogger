@@ -1,7 +1,0 @@
-cilogger
-========
-
-.. toctree::
-   :maxdepth: 4
-
-   cilogger
