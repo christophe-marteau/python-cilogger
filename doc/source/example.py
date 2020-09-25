@@ -4,8 +4,11 @@ import sys
 import cilogger.cilogger
 log = cilogger.cilogger.ccilogger(__name__)
 
+# You can globaly disable ctrace and ftrace
+# cilogger.cilogger.ctrace_on = False
+# cilogger.cilogger.ftrace_on = False
 
-@cilogger.cilogger.ctrace
+@cilogger.cilogger.ctrace()
 class MyClass(object):
     def __init__(self):
         self.__log__.info('Init object')
@@ -33,7 +36,7 @@ class MyClass(object):
     def __log__(self):
         return cilogger.cilogger.ccilogger('{}.{}'.format(self.__class__.__module__, self.__class__.__name__))
 
-@cilogger.cilogger.ftrace
+@cilogger.cilogger.ftrace()
 def main():
     log.debug('My debug message in an indented function')
     mc = MyClass()

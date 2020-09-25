@@ -42,6 +42,10 @@ import colors
 import re
 
 
+ctrace_on = True
+ftrace_on = True
+
+
 def finspect(f, fargs) -> dict:
     """ This function retrieves real module name and function name to be used in a function wrapper
 
@@ -84,70 +88,93 @@ def finspect(f, fargs) -> dict:
     return {'module': fmodule, 'name': fname, 'type': ftype}
 
 
-def ftrace(fct: typing.Callable) -> typing.Callable:
+def ftrace(enable=True) -> typing.Callable:
     """Decorator for tracing functions
     This decorator decorate a function by inserting a trace log with function arguments before and after
 
     * When entering a function it logs as a trace: **fct( \\*[<args list>], \\*\\*{<kwargs list>})**
     * When leaving a function it logs as a trace: **fct( \\*[<args list>], \\*\\*{<kwargs list>}) = <value>**
 
-    :param function fct: The function to decorate
+    :param bool enable: Enable this feature (True by default). Set it to False to disable function trace
     :return: A wrapper to a function
     """
-    import inspect
+    def inner_ftraced(fct):
+        if enable and ftrace_on:
+            import inspect
 
-    def ftraced(*args, **kwargs):
-        cargs = [a for a in args]
-        signature = inspect.signature(fct)
-        dargs = [v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty]
-        fi = finspect(fct, args)
-        locallogger = ccilogger(fi['module'])
-        if fi['type'] == 'setter':
-            aargs = cargs + dargs
-            locallogger.log(locallogger.TRACE, '( {} ) => set( {} )'.format(aargs[0], aargs[1]),
-                            extra={'realFunctionName': fi['name'], 'prefix': '',
-                                   'padding_default_char': ' ',
-                                   'padding_default_enclosure_char': '@'})
-        elif fi['type'] is None:
-            locallogger.indent('TRACE', '( *{}, **{} )'.format(cargs + dargs, kwargs),
-                               extra={'realFunctionName': fi['name'], 'prefix': ''})
-        x = fct(*args, **kwargs)
-        if fi['type'] == 'getter':
-            aargs = cargs + dargs
-            locallogger.log(locallogger.TRACE, '( {} ) <= get( {} )'.format(aargs[0], x),
-                            extra={'realFunctionName': fi['name'], 'prefix': '',
-                                   'padding_default_char': ' ',
-                                   'padding_default_enclosure_char': '#'})
-        elif fi['type'] is None:
-            locallogger.unindent('TRACE', '( *{}, **{} ) = {}'.format(cargs + dargs, kwargs, x),
-                                 extra={'realFunctionName': fi['name'], 'prefix': ''})
-        return x
-    return ftraced
+            def ftraced(*args, **kwargs):
+                cargs = [a for a in args]
+                signature = inspect.signature(fct)
+                dargs = [v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty]
+                fi = finspect(fct, args)
+                locallogger = ccilogger(fi['module'])
+                if fi['type'] == 'setter':
+                    aargs = cargs + dargs
+                    locallogger.log(locallogger.TRACE, '( {} ) => set( {} )'.format(aargs[0], aargs[1]),
+                                    extra={'realFunctionName': fi['name'], 'prefix': '',
+                                           'padding_default_char': ' ',
+                                           'padding_default_enclosure_char': '@'})
+                elif fi['type'] is None:
+                    locallogger.indent('TRACE', '( *{}, **{} )'.format(cargs + dargs, kwargs),
+                                       extra={'realFunctionName': fi['name'], 'prefix': ''})
+                x = fct(*args, **kwargs)
+                if fi['type'] == 'getter':
+                    aargs = cargs + dargs
+                    locallogger.log(locallogger.TRACE, '( {} ) <= get( {} )'.format(aargs[0], x),
+                                    extra={'realFunctionName': fi['name'], 'prefix': '',
+                                           'padding_default_char': ' ',
+                                           'padding_default_enclosure_char': '#'})
+                elif fi['type'] is None:
+                    locallogger.unindent('TRACE', '( *{}, **{} ) = {}'.format(cargs + dargs, kwargs, x),
+                                         extra={'realFunctionName': fi['name'], 'prefix': ''})
+                return x
+            return ftraced
+        else:
+            return fct
+
+    return inner_ftraced
 
 
-def ctrace(cls: object):
+def ctrace(enable=True) -> object:
     """Decorator for tracing all methods and properties in a class
     This decorator add a ftrace decorator on each method and property o the class
 
-    :param class cls: The class to decorate
+    :param bool enable: Enable this feature (True by default). Set it to False to disable class trace
     :return: A class with all methods and properties wrapped by a ftrace decorator
     """
-    import types
-    for method in dir(cls):
-        m = getattr(cls, method)
-        if isinstance(m, types.FunctionType) and m.__name__ == '__init__':
-            setattr(cls, method, ftrace(m))
-        if isinstance(m, types.FunctionType) \
-                and not m.__name__ == 'ftraced' \
-                and not m.__name__.startswith('__') \
-                and not m.__name__.endswith('__'):
-            setattr(cls, method, ftrace(m))
-        if isinstance(m, property) and \
-                ((m.fget is not None and m.fget.__name__ not in ['log', '_log', '__log__', 'ftraced']) or
-                 (m.fset is not None and m.fset.__name__ not in ['log', '_log', '__log__', 'ftraced']) or
-                 (m.fdel is not None and m.fdel.__name__ not in ['log', '_log', '__log__', 'ftraced'])):
-            setattr(cls, method, property(ftrace(m.__get__), ftrace(m.__set__), ftrace(m.__delattr__)))
-    return cls
+    class ClassWrapper:
+        def __init__(self, cls):
+            self.other_class = cls
+            if enable and ctrace_on:
+                import types
+                for method in dir(self.other_class):
+                    m = getattr(self.other_class, method)
+                    if isinstance(m, types.FunctionType) and m.__name__ == '__init__':
+                        setattr(self.other_class, method, ftrace(enable)(m))
+                    if isinstance(m, types.FunctionType) \
+                            and not m.__name__ == 'ftraced' \
+                            and not m.__name__ == 'inner_ftraced' \
+                            and not m.__name__.startswith('__') \
+                            and not m.__name__.endswith('__'):
+                        setattr(self.other_class, method, ftrace(enable)(m))
+                    if isinstance(m, property) and \
+                            ((m.fget is not None and
+                              m.fget.__name__ not in ['log', '_log', '__log__', 'ftraced', 'inner_ftraced']) or
+                             (m.fset is not None
+                              and m.fset.__name__ not in ['log', '_log', '__log__', 'ftraced', 'inner_ftraced']) or
+                             (m.fdel is not None
+                              and m.fdel.__name__ not in ['log', '_log', '__log__', 'ftraced', 'inner_ftraced'])):
+                        setattr(
+                            self.other_class, method, property(
+                                ftrace(enable)(m.__get__), ftrace(enable)(m.__set__), ftrace(enable)(m.__delattr__)
+                            )
+                        )
+
+        def __call__(self, *cls_ars):
+            other = self.other_class(*cls_ars)
+            return other
+
+    return ClassWrapper
 
 
 class CiFormatter(log.Formatter):
@@ -368,7 +395,6 @@ class CiLogger(log.getLoggerClass()):
 
         return True
 
-
 log.setLoggerClass(CiLogger)
 
 
@@ -391,7 +417,6 @@ def _rcilogger():
     rlogger.addHandler(handler)
     return rlogger
 
-
 rootlogger = _rcilogger()
 """ 
 A root Logger that can be use in main script to set default level. 
@@ -410,7 +435,6 @@ Example :
         cilogger.cilogger.rootlogger.setLevel('INFO')
         sys.exit(main())   
 """
-
 
 def ccilogger(name):
     """ Get a child logger in a module

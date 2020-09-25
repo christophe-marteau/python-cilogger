@@ -9,6 +9,27 @@ type "TRACE". It also contains two decorators:
   * \@ is used to show that it's a setter property call
   * \# is used to show that it's a getter property call
 
+You can globaly disable ftrace and ctrace by adding these lines
+```
+cilogger.cilogger.ctrace_on = False
+cilogger.cilogger.ftrace_on = False
+```
+Or you can disable ftrace and ctrace in decorator call with :
+```
+@cilogger.cilogger.ctrace(enable=False)
+@cilogger.cilogger.ftrace(enable=False)
+```
+
+> :warning: **WARNING**
+>
+> :warning: Decorator call has changed !
+>
+> :warning: You must now put parenthesis in decorator's call
+>
+> Use :
+>* ```@cilogger.cilogger.ctrace()``` instead of ```@cilogger.cilogger.ctrace```
+>* ```@cilogger.cilogger.ftrace()``` instead of ```@cilogger.cilogger.ftrace```
+
 
 Install :
 ---------
@@ -27,8 +48,13 @@ import sys
 import cilogger.cilogger
 log = cilogger.cilogger.ccilogger(__name__)
 
+# You can globaly disable ctrace and ftrace
+# cilogger.cilogger.ctrace_on = False
+# cilogger.cilogger.ftrace_on = False
 
-@cilogger.cilogger.ctrace
+## If you want only this decorator to be disable use :
+# @cilogger.cilogger.ctrace(enable=False)
+@cilogger.cilogger.ctrace()
 class MyClass(object):
     def __init__(self):
         self.__log__.info('Init object')
@@ -56,7 +82,9 @@ class MyClass(object):
     def __log__(self):
         return cilogger.cilogger.ccilogger('{}.{}'.format(self.__class__.__module__, self.__class__.__name__))
 
-@cilogger.cilogger.ftrace
+## If you want only this decorator to be disable use :
+# @cilogger.cilogger.ftrace(enable=False)
+@cilogger.cilogger.ftrace()
 def main():
     log.debug('My debug message in an indented function')
     mc = MyClass()
