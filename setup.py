@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="cilogger",
-    version="0.1.1",
+    version="0.1.2",
     author="Christophe Marteau",
     author_email="christophe.marteau@gmail.com",
     description="A colorized and indented logging extension",
