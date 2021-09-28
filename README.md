@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
 ![Output example with colorized and indented logs](doc/source/example.png)
 
-If you want per level custom formatter you have to replace (in this example to customize TRACE and DEBUG levels):
+If you want per level custom formatter you have to replace (in this example to customize INFO and WARNING levels):
 
 ```python
 # coding: utf-8
@@ -99,18 +99,12 @@ rootlogger = cilogger.cilogger._rcilogger({
     'WARNING' : '<color fg=cyan>{asctime:12s}</> '
                 '<level>{levelname: >8s}</> '
                 '<level>{message}</>',
-    'ERROR' : '<color fg=cyan>{asctime:12s}</> '
-              '<level>{levelname: >8s}</> '
-              '<level>{message}</>',
-    'CRITICAL' : '<color fg=cyan>{asctime:12s}</> '
-                 '<level>{levelname: >8s}</> '
-                 '<level>{message}</>',
 })
 
 log = rootlogger.getChild(__name__)
 ```
 
-Full example is available in "/doc/source/example-custom-formater-per-level.py" and gives this output:
+Full example is available in "[example-custom-formater-per-level.py](doc/source/example-custom-formater-per-level..py)" and gives this output:
 
 ![Output example for custom formatter per level](doc/source/example-custom-formater-per-level.png)
 
