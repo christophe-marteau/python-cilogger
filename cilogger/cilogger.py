@@ -160,8 +160,9 @@ class CiFormatter(log.Formatter):
     The color's properties inside a color tag are specified with fg=... bg=... style=... as in the colors
     module from ansicolors
     """
-    def __init__(self, fmt=None, datefmt=None, style='%'):
+    def __init__(self, fmt=None, datefmt=None, style='%',custom_lvl_formaters={}):
         super().__init__(fmt, datefmt, style)
+        self.custom_lvl_formaters=custom_lvl_formaters
 
     def _get_color(self: object, scolor: str, c: dict):
         """This function inspect recursively the string searching 'fg', 'bg' and 'style' tags
@@ -212,8 +213,16 @@ class CiFormatter(log.Formatter):
         :param object record: Logging's record
         :return: The logging message
         """
+        format_orig = self._style._fmt
+        
+        str_level_name = log.getLevelName(record.levelno)
+        if str_level_name in self.custom_lvl_formaters:
+            self._style._fmt = self.custom_lvl_formaters[str_level_name]
+
         s = super().format(record)
         s = self._colorize(s, record)
+
+        self._style._fmt = format_orig
         return s
 
 
@@ -373,7 +382,7 @@ class CiLogger(log.getLoggerClass()):
 log.setLoggerClass(CiLogger)
 
 
-def _rcilogger():
+def _rcilogger(custom_lvl_formaters={}):
     """ Get a a root logger. This function should not be call outside this module
 
     :return: A root CiLogger with default message formatter
@@ -386,9 +395,11 @@ def _rcilogger():
                               '<color fg=grey bg=#414141>{padding}</>'
                               '<color fg=magenta>{realFunctionName}</>'
                               '{prefix}<level>{message}</>',
-                              style='{')
+                              style='{', custom_lvl_formaters=custom_lvl_formaters)
     handler.setFormatter(ciformatter)
     rlogger = log.getLogger('root')
+    for hdlr in rlogger.handlers:
+        rlogger.removeHandler(hdlr)
     rlogger.addHandler(handler)
     return rlogger
 
